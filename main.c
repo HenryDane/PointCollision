@@ -4,6 +4,50 @@
 #include "files.h"
 #include "collisions.h"
 
+void fast_test(size_t n_pts, float* xs, float* vs, float* rs) {
+    printf("==================== FAST TEST ====================\n");
+    clock_t start = clock();
+
+    size_t n_pairs;
+    pair_t *pairs;
+    make_collision_pairs(n_pts, xs, vs, rs, &n_pairs, &pairs);
+
+    // count collisions
+    size_t n_colls = count_collisions(n_pts, xs, vs, rs, n_pairs, pairs);
+
+    clock_t end = clock();
+    float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+
+    printf("Generated %d pairs.\n", n_pairs);
+    printf("Found %d collisions.\n", n_colls);
+    printf("Operation took %f ms\n\n\n", seconds*1000.0f);
+
+    // clean up
+    free(pairs);
+}
+
+void slow_test(size_t n_pts, float* xs, float* vs, float* rs) {
+    printf("==================== SLOW TEST ====================\n");
+    clock_t start = clock();
+
+    size_t n_pairs;
+    pair_t *pairs;
+    make_collision_pairs_naiive(n_pts, xs, vs, rs, &n_pairs, &pairs);
+
+    // count collisions
+    size_t n_colls = count_collisions(n_pts, xs, vs, rs, n_pairs, pairs);
+
+    clock_t end = clock();
+    float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+
+    printf("Generated %d pairs.\n", n_pairs);
+    printf("Found %d collisions.\n", n_colls);
+    printf("Operation took %f ms\n\n\n", seconds*1000.0f);
+
+    // clean up
+    free(pairs);
+}
+
 int main() {
 //    size_t arr_shape[4] = {6, 7, 8, 9};
 //    size_t idxs[4] = {0};
@@ -27,24 +71,12 @@ int main() {
         return -1;
     }
 
-    clock_t start = clock();
+    // first test
+    fast_test(n_rows, xs, vs, rs);
 
-    // make pairs
-    size_t n_pairs, *pairs;
-    make_collision_pairs(n_rows, xs, vs, rs, &n_pairs, &pairs);
+    // second test
+    slow_test(n_rows, xs, vs, rs);
 
-    // count collisions
-    size_t n_colls = count_collisions(n_rows, xs, vs, rs, n_pairs, pairs);
-
-    clock_t end = clock();
-    float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-
-    printf("Generated %d pairs.\n", n_pairs);
-    printf("Found %d collisions.\n", n_colls);
-    printf("Operation took %f ms\n", seconds*1000.0f);
-
-    // clean up
-    free(pairs);
     free(rs);
     free(vs);
     free(xs);

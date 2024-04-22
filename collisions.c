@@ -32,8 +32,8 @@ void g2c_element_init(g2c_element* elem, size_t idx, size_t* n_cells) {
     elem->cell_index = idx;
 
     // figure out current cell coords
-    size_t m_idxs[3];
-    unravel_index(idx, n_cells, &m_idxs);
+//    size_t m_idxs[3];
+//    unravel_index(idx, n_cells, &m_idxs);
 }
 
 void g2c_element_emplace(g2c_element* elem, size_t index) {
@@ -53,6 +53,11 @@ void g2c_element_emplace(g2c_element* elem, size_t index) {
     elem->indexes[elem->n_elem] = index;
     elem->n_elem++;
 };
+
+bool pairs_equal(pair_t* A, pair_t* B) {
+    return ((A->a == B->a) && (A->b == B->b)) ||
+        ((A->b == B->a) && (A->a == B->b));
+}
 
 bool is_colliding(size_t A, size_t B, float* xs, float* vs, float* rs,
     float* t) {
@@ -96,8 +101,22 @@ bool is_colliding(size_t A, size_t B, float* xs, float* vs, float* rs,
     return isfinite(*t);
 }
 
+void make_collision_pairs_naiive(size_t n_pts, float* xs, float* vs, float* rs,
+    size_t* n_pairs, pair_t** pairs) {
+    (*n_pairs) = ((n_pts * n_pts) / 2);
+    (*pairs) = malloc((*n_pairs) * sizeof(pair_t));
+    size_t idx = 0;
+    for (size_t i = 0; i < n_pts; i++) {
+        for (size_t j = i + 1; j < n_pts; j++) {
+            (*pairs)[idx].a = i;
+            (*pairs)[idx].a = j;
+            idx++;
+        }
+    }
+}
+
 void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
-    size_t* n_pairs, size_t** pairs) {
+    size_t* n_pairs, pair_t** pairs) {
     // generate offset array
     int* offs = malloc(27 * 3 * sizeof(int));
     for (int i = -1; i <= 1; i++) {
@@ -167,7 +186,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     // size: (total cells, )
     g2c_element* g2c_table = malloc(n_cells_total * sizeof(g2c_element));
     for (size_t i = 0; i < n_cells_total; i++) {
-//        g2c_element_init(&g2c_table[i], i);
+        g2c_element_init(&g2c_table[i], i, &n_cells[0]);
     }
 
     // build g2c table and compute point cell indexes
@@ -183,7 +202,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     // start generating pairs
     size_t pair_capacity = 1024;
     *n_pairs = 0;
-    (*pairs) = malloc(1024 * 2 * sizeof(size_t));
+    (*pairs) = malloc(1024 * sizeof(pair_t));
     for (size_t i = 0; i < n_cells_total; i++) {
         if (g2c_table[i].n_elem == 0) continue;
 
@@ -203,8 +222,10 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
                 }
 
                 // insert the pair
-                (*pairs)[(*n_pairs) * 2 + 0] = g2c_table[i].indexes[j];
-                (*pairs)[(*n_pairs) * 2 + 1] = g2c_table[i].indexes[k];
+//                (*pairs)[(*n_pairs) * 2 + 0] = g2c_table[i].indexes[j];
+//                (*pairs)[(*n_pairs) * 2 + 1] = g2c_table[i].indexes[k];
+                (*pairs)[(*n_pairs)].a = g2c_table[i].indexes[j];
+                (*pairs)[(*n_pairs)].b = g2c_table[i].indexes[k];
 
                 // increment pair counter
                 (*n_pairs)++;
@@ -215,25 +236,30 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     }
 
     // check for duplicates
-    for (size_t i = 0; i < *n_pairs; i++) {
-        // look for occurrences of this element elsewhere
-        for (size_t j = i + 1; j < *n_pairs; j++) {
-            // if pairs[i] == pairs[j], swap the jth with the last and
-            // repeat until they do not match, decrementing n_pairs each time
-            while (((*pairs)[(i * 2) + 0] == (*pairs)[(j * 2) + 0]) &&
-                ((*pairs)[(i * 2) + 1] == (*pairs)[(j * 2) + 1])) {
-                printf("match\n");
-                // swap first element
-                size_t tmp = (*pairs)[(j * 2) + 0];
-                (*pairs)[(j * 2) + 0] = (*pairs)[((*n_pairs) * 2) + 0];
-                (*pairs)[((*n_pairs) * 2) + 0] = tmp;
-                tmp = (*pairs)[(j * 2) + 1];
-                (*pairs)[(j * 2) + 1] = (*pairs)[((*n_pairs) * 2) + 1];
-                (*pairs)[((*n_pairs) * 2) + 1] = tmp;
-                (*n_pairs)--;
-            }
-        }
-    }
+//    size_t n_dupl = 0;
+//    for (size_t i = 0; i < *n_pairs; i++) {
+//        // look for occurrences of this element elsewhere
+//        for (size_t j = i + 1; j < *n_pairs; j++) {
+//            // if pairs[i] == pairs[j], swap the jth with the last and
+//            // repeat until they do not match, decrementing n_pairs each time
+//            while (pairs_equal(&(*pairs)[i], &(*pairs)[j])) {
+////                printf("match\n");
+//                // swap first element
+//                pair_t tmp = {(*pairs)[i].a, (*pairs)[i].b}; // = pairs[i];
+//                (*pairs)[i].a = (*pairs)[j].a;
+//                (*pairs)[i].b = (*pairs)[j].b;
+//                (*pairs)[j].a = tmp.a;
+//                (*pairs)[j].b = tmp.b;
+//
+//                // decrement size
+//                (*n_pairs)--;
+//
+//                // count dupl
+//                n_dupl++;
+//            }
+//        }
+//    }
+//    printf("found %d dupl\n", n_dupl);
 
     free(g2c_table);
     free(Xs);
@@ -242,13 +268,13 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
 }
 
 size_t count_collisions(size_t n_pts, float* xs, float* vs, float* rs,
-    size_t n_pairs, size_t* pairs) {
+    size_t n_pairs, pair_t* pairs) {
     size_t dy_colls = 0;
     size_t st_colls = 0;
 
     float t;
     for (size_t i = 0; i < n_pairs; i++) {
-        if (is_colliding(pairs[(i * 2)], pairs[(i * 2) + 1], xs, vs, rs, &t)) {
+        if (is_colliding(pairs[i].a, pairs[i].b, xs, vs, rs, &t)) {
             if (t < 0) {
                 st_colls++;
             } else {
@@ -257,7 +283,7 @@ size_t count_collisions(size_t n_pts, float* xs, float* vs, float* rs,
         } else {
             continue;
         }
-        printf("%lu %lu %f\n", pairs[(i * 2)], pairs[(i * 2) + 1], t);
+//        printf("%lu %lu %f\n", pairs[i].a, pairs[i].b, t);
     }
     //printf("\n");
 
