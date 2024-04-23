@@ -53,7 +53,7 @@ float rand_float(float min, float max) {
 }
 
 float time_test() {
-    size_t n_pts = 1000;
+    size_t n_pts = 10000;
     float* xs = (float*) malloc(n_pts * 3 * sizeof(float));
     float* vs = (float*) malloc(n_pts * 3 * sizeof(float));
     float* rs = (float*) malloc(n_pts * sizeof(float));
@@ -64,8 +64,8 @@ float time_test() {
         xs[j + 1] = rand_float(-10, 10);
         xs[j + 2] = rand_float(-10, 10);
         // velocities [-1, 1] (v_z=0)
-        vs[j + 0] = rand_float(-1, 1);
-        vs[j + 1] = rand_float(-1, 1);
+        vs[j + 0] = rand_float(-0.1, 0.01);
+        vs[j + 1] = rand_float(-0.1, 0.01);
         vs[j + 2] = 0.0f;
         // radii
         rs[i] = 1.0f;
@@ -88,12 +88,6 @@ float time_test() {
 }
 
 int main() {
-//    size_t arr_shape[4] = {6, 7, 8, 9};
-//    size_t idxs[4] = {0};
-//    unravel_index(1621, &arr_shape[0], &idxs[0]);
-//    printf("idxs: %lu %lu %lu %lu\n", idxs[0], idxs[1], idxs[2], idxs[3]);
-//    return 0;
-
     // read inputs
     float *xs, *vs, *rs;
     size_t n_rows, n_cols;
@@ -115,6 +109,8 @@ int main() {
 
     // second test
     slow_test(n_rows, xs, vs, rs);
+
+    return 0;
 
     // timings
     printf("Beginning timing tests\n");
