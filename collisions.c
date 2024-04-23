@@ -143,12 +143,12 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
             }
         }
     }
-    printf("max_vel=%f max_rad=%f\n", max_vel, max_rad);
-    printf("min xs: %f %f %f\n", min_xs[0], min_xs[1], min_xs[2]);
+//    printf("max_vel=%f max_rad=%f\n", max_vel, max_rad);
+//    printf("min xs: %f %f %f\n", min_xs[0], min_xs[1], min_xs[2]);
 
     // compute grid cell size
     float L = fmax(max_vel * 2 , max_rad * 2);
-    printf("cell_size=%f\n", L);
+//    printf("cell_size=%f\n", L);
 
     // create cell coordinate array and find max values
     int* Xs = malloc(n_pts * 3 * sizeof(int));
@@ -168,11 +168,11 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     // convert n_cells from max_idx to sizes
     size_t n_cells_total = 1;
     for (int i = 0; i < 4; i++) {
-        printf("i=%d n_cells[i]=%d\n", i, n_cells[i]);
+//        printf("i=%d n_cells[i]=%d\n", i, n_cells[i]);
         n_cells[i]++;
         n_cells_total *= n_cells[i];
     }
-    printf("n_cells: %d %d %d\n", n_cells[1], n_cells[2], n_cells[3]);
+//    printf("n_cells: %d %d %d\n", n_cells[1], n_cells[2], n_cells[3]);
 
     // cell_index --> pointer to array of indexes to points
     // size: (total cells, )
@@ -244,6 +244,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
             }
         }
 
+//        printf("inserting %d pairs for i=%d\n", n_pts_tbl * n_pts_tbl / 2, i);
         for (size_t j = 0; j < n_pts_tbl; j++) {
             for (size_t k = j + 1; k < n_pts_tbl; k++) {
                 // check size
@@ -269,6 +270,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
 //                (*n_pairs)++;
             }
         }
+//        printf("    set size=%d\n", p_set.n);
 
         free(g2c_table[i].indexes);
     }

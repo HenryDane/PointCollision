@@ -48,6 +48,45 @@ void slow_test(size_t n_pts, float* xs, float* vs, float* rs) {
     free(pairs);
 }
 
+float rand_float(float min, float max) {
+    return min + ((rand() / ((float) RAND_MAX)) * (max - min));
+}
+
+float time_test() {
+    size_t n_pts = 1000;
+    float* xs = (float*) malloc(n_pts * 3 * sizeof(float));
+    float* vs = (float*) malloc(n_pts * 3 * sizeof(float));
+    float* rs = (float*) malloc(n_pts * sizeof(float));
+    for (size_t i = 0; i < n_pts; i++) {
+        size_t j = i * 3;
+        // positions [-10, 10]
+        xs[j + 0] = rand_float(-10, 10);
+        xs[j + 1] = rand_float(-10, 10);
+        xs[j + 2] = rand_float(-10, 10);
+        // velocities [-1, 1] (v_z=0)
+        vs[j + 0] = rand_float(-1, 1);
+        vs[j + 1] = rand_float(-1, 1);
+        vs[j + 2] = 0.0f;
+        // radii
+        rs[i] = 1.0f;
+    }
+
+    clock_t start = clock();
+
+    size_t n_pairs;
+    pair_t *pairs;
+    make_collision_pairs(n_pts, xs, vs, rs, &n_pairs, &pairs);
+
+    clock_t end = clock();
+    float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+
+    free(rs);
+    free(vs);
+    free(xs);
+
+    return seconds;
+}
+
 int main() {
 //    size_t arr_shape[4] = {6, 7, 8, 9};
 //    size_t idxs[4] = {0};
@@ -76,6 +115,17 @@ int main() {
 
     // second test
     slow_test(n_rows, xs, vs, rs);
+
+    // timings
+    printf("Beginning timing tests\n");
+    float time_acc = 0;
+    const int n_tests = 50;
+    for (size_t i = 0; i < n_tests; i++) {
+        printf("Test %d\n", i);
+        time_acc += time_test();
+    }
+    time_acc /= ((float) n_tests);
+    printf("\n\nDid %d tests in %.4f ms (avg).\n", n_tests, time_acc * 1000.0);
 
     free(rs);
     free(vs);
