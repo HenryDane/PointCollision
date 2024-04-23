@@ -3,10 +3,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
-
-typedef struct {
-    size_t a, b;
-} pair_t;
+#include "pair_set.h"
 
 bool is_colliding(size_t A, size_t B, float* xs, float* vs, float* rs,
     float* t);
