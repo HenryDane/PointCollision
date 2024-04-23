@@ -7,10 +7,13 @@ float signf(float x) {
     return x > 0 ? 1 : -1;
 }
 
-void unravel_index(size_t idx, size_t* arr_shape, size_t* idxs) {
+void unravel_index(size_t idx, int* arr_shape, int* idxs) {
+//    printf("arr_shape=%d %d %d\n", arr_shape[0], arr_shape[1], arr_shape[2]);
     for (int i = 0; i < 3; i++) {
-        idxs[3 - i] = idx % arr_shape[3 - i];
-        idx = idx / arr_shape[3 - i];
+//        idxs[2 - i] = idx % arr_shape[2 - i];
+        idxs[i] = idx % arr_shape[i];
+//        idx = idx / arr_shape[2 - i];
+        idx = idx / arr_shape[i];
     }
 }
 
@@ -18,22 +21,20 @@ typedef struct {
     size_t n_elem;
     size_t n_capacity;
     size_t cell_index;
-    size_t n_adjacent;
-    size_t* adjacents;
+    int m_idxs[3];
     size_t* indexes;
 } g2c_element;
 
 const size_t g2c_size_incr = 1024;
 
-void g2c_element_init(g2c_element* elem, size_t idx, size_t* n_cells) {
+void g2c_element_init(g2c_element* elem, size_t idx, int* n_cells) {
     elem->indexes = malloc(g2c_size_incr * sizeof(size_t));
     elem->n_capacity = g2c_size_incr;
     elem->n_elem = 0;
     elem->cell_index = idx;
 
     // figure out current cell coords
-//    size_t m_idxs[3];
-//    unravel_index(idx, n_cells, &m_idxs);
+    unravel_index(idx, n_cells, &(elem->m_idxs[0]));
 }
 
 void g2c_element_emplace(g2c_element* elem, size_t index) {
@@ -52,7 +53,7 @@ void g2c_element_emplace(g2c_element* elem, size_t index) {
     // assign stuff
     elem->indexes[elem->n_elem] = index;
     elem->n_elem++;
-};
+}
 
 bool pairs_equal(pair_t* A, pair_t* B) {
     return ((A->a == B->a) && (A->b == B->b)) ||
@@ -115,20 +116,24 @@ void make_collision_pairs_naiive(size_t n_pts, float* xs, float* vs, float* rs,
     }
 }
 
+typedef struct {
+    size_t a, b, c;
+} triple_t ;
+
 void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     size_t* n_pairs, pair_t** pairs) {
     // generate offset array
-    int* offs = malloc(27 * 3 * sizeof(int));
-    for (int i = -1; i <= 1; i++) {
-        for (int j = -1; j <= 1; j++) {
-            for (int k = -1; k <= 1; k++) {
-                int idx = (i + 1) + ((j + 1) * 2) + ((k + 1) * 9);
-                offs[(idx * 3) + 0] = i;
-                offs[(idx * 3) + 1] = j;
-                offs[(idx * 3) + 2] = k;
-            }
-        }
-    }
+//    triple_t* offs = malloc(27 * sizeof(triple_t));
+//    for (int i = -1; i <= 1; i++) {
+//        for (int j = -1; j <= 1; j++) {
+//            for (int k = -1; k <= 1; k++) {
+//                int idx = (i + 1) + ((j + 1) * 2) + ((k + 1) * 9);
+//                offs[idx].a = i;
+//                offs[idx].b = j;
+//                offs[idx].c = k;
+//            }
+//        }
+//    }
 
     // find max velocity and max radius
     float max_vel, max_rad; max_vel = -1e99; max_rad = -1e99;
@@ -177,6 +182,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     // convert n_cells from max_idx to sizes
     size_t n_cells_total = 1;
     for (int i = 0; i < 4; i++) {
+        printf("i=%d n_cells[i]=%d\n", i, n_cells[i]);
         n_cells[i]++;
         n_cells_total *= n_cells[i];
     }
@@ -186,7 +192,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     // size: (total cells, )
     g2c_element* g2c_table = malloc(n_cells_total * sizeof(g2c_element));
     for (size_t i = 0; i < n_cells_total; i++) {
-        g2c_element_init(&g2c_table[i], i, &n_cells[0]);
+        g2c_element_init(&g2c_table[i], i, &n_cells[1]);
     }
 
     // build g2c table and compute point cell indexes
@@ -205,9 +211,62 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     (*pairs) = malloc(1024 * sizeof(pair_t));
     for (size_t i = 0; i < n_cells_total; i++) {
         if (g2c_table[i].n_elem == 0) continue;
+        // count how many points we need to process
+        size_t n_pts_tbl = 0;
 
-        for (size_t j = 0; j < g2c_table[i].n_elem; j++) {
-            for (size_t k = j + 1; k < g2c_table[i].n_elem; k++) {
+        int X = g2c_table[i].m_idxs[0];
+        int Y = g2c_table[i].m_idxs[1];
+        int Z = g2c_table[i].m_idxs[2];
+
+//        printf("i=%d n=%d X=%d Y=%d Z=%d\n", i, g2c_table[i].n_elem, X, Y, Z);
+
+        // check neighbors to find count of points
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                for (int z = -1; z <= 1; z++) {
+                    int gx = X + x;
+                    int gy = Y + y;
+                    int gz = Z + z;
+                    if (gx < 0 || gx >= n_cells[1]) continue;
+                    if (gy < 0 || gy >= n_cells[2]) continue;
+                    if (gz < 0 || gz >= n_cells[3]) continue;
+                    size_t idx = gx + (gy * n_cells[1]) +
+                        (gz * n_cells[1] * n_cells[2]);
+                    n_pts_tbl += g2c_table[idx].n_elem;
+                }
+            }
+        }
+//        printf("neighbor pairs=%d self_size=%d\n", n_pts_tbl,
+//            g2c_table[i].n_elem);
+
+//        if (n_pts_tbl < g2c_table[i].n_elem) {
+//            printf("failed to count self.\n");
+//            exit(1);
+//        }
+
+        size_t* points = malloc(n_pts_tbl * sizeof(size_t));
+        size_t pidx = 0;
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                for (int z = -1; z <= 1; z++) {
+                    int gx = X + x;
+                    int gy = Y + y;
+                    int gz = Z + z;
+                    if (gx < 0 || gx >= n_cells[1]) continue;
+                    if (gy < 0 || gy >= n_cells[2]) continue;
+                    if (gz < 0 || gz >= n_cells[3]) continue;
+                    size_t idx = gx + (gy * n_cells[1]) +
+                        (gz * n_cells[1] * n_cells[2]);
+                    // copy
+                    for (size_t j = 0; j < g2c_table[idx].n_elem; j++) {
+                        points[pidx++] = g2c_table[idx].indexes[j];
+                    }
+                }
+            }
+        }
+
+        for (size_t j = 0; j < n_pts_tbl; j++) {
+            for (size_t k = j + 1; k < n_pts_tbl; k++) {
                 // check size
                 if ((*n_pairs) == pair_capacity) {
                     pair_capacity += 1024;
@@ -222,8 +281,6 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
                 }
 
                 // insert the pair
-//                (*pairs)[(*n_pairs) * 2 + 0] = g2c_table[i].indexes[j];
-//                (*pairs)[(*n_pairs) * 2 + 1] = g2c_table[i].indexes[k];
                 (*pairs)[(*n_pairs)].a = g2c_table[i].indexes[j];
                 (*pairs)[(*n_pairs)].b = g2c_table[i].indexes[k];
 
@@ -236,35 +293,37 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     }
 
     // check for duplicates
-//    size_t n_dupl = 0;
-//    for (size_t i = 0; i < *n_pairs; i++) {
-//        // look for occurrences of this element elsewhere
-//        for (size_t j = i + 1; j < *n_pairs; j++) {
-//            // if pairs[i] == pairs[j], swap the jth with the last and
-//            // repeat until they do not match, decrementing n_pairs each time
-//            while (pairs_equal(&(*pairs)[i], &(*pairs)[j])) {
-////                printf("match\n");
-//                // swap first element
-//                pair_t tmp = {(*pairs)[i].a, (*pairs)[i].b}; // = pairs[i];
-//                (*pairs)[i].a = (*pairs)[j].a;
-//                (*pairs)[i].b = (*pairs)[j].b;
-//                (*pairs)[j].a = tmp.a;
-//                (*pairs)[j].b = tmp.b;
-//
-//                // decrement size
-//                (*n_pairs)--;
-//
-//                // count dupl
-//                n_dupl++;
-//            }
-//        }
-//    }
-//    printf("found %d dupl\n", n_dupl);
+    printf("Removing duplicates from size=%d\n", *n_pairs);
+    size_t n_dupl = 0;
+    for (size_t i = 0; i < *n_pairs; i++) {
+        // look for occurrences of this element elsewhere
+        for (size_t j = i + 1; j < *n_pairs; j++) {
+            // if pairs[i] == pairs[j], swap the jth with the last and
+            // repeat until they do not match, decrementing n_pairs each time
+            while (pairs_equal(&(*pairs)[i], &(*pairs)[j])) {
+                // swap first element
+                size_t last = (*n_pairs) - 1;
+                pair_t tmp = {(*pairs)[last].a, (*pairs)[last].b};
+                (*pairs)[last].a = (*pairs)[j].a;
+                (*pairs)[last].b = (*pairs)[j].b;
+                (*pairs)[j].a = tmp.a;
+                (*pairs)[j].b = tmp.b;
+
+                // decrement size
+                (*n_pairs)--;
+
+                // count dupl
+                n_dupl++;
+//                printf("n_dupl=%d n_pairs=%d\n", n_dupl, *n_pairs);
+            }
+        }
+    }
+    printf("found %d dupl\n", n_dupl);
 
     free(g2c_table);
     free(Xs);
     free(cell_indexes);
-    free(offs);
+//    free(offs);
 }
 
 size_t count_collisions(size_t n_pts, float* xs, float* vs, float* rs,
