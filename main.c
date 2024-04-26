@@ -120,7 +120,7 @@ int main() {
         return -1;
     }
 #else
-    size_t n_rows = 1000;
+    size_t n_rows = 5000;
     float* xs = (float*) malloc(n_rows * 3 * sizeof(float));
     float* vs = (float*) malloc(n_rows * 3 * sizeof(float));
     float* rs = (float*) malloc(n_rows * sizeof(float));

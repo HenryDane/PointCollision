@@ -83,15 +83,15 @@ void insert_pair(pair_set_t* set, pair_t* pair) {
 }
 
 void to_flat_array(pair_set_t* set, size_t* n_pairs, pair_t** pairs) {
-    *n_pairs = set->n;
-    (*pairs) = (pair_t*) malloc((*n_pairs) * sizeof(pair_t));
+    (*n_pairs) = set->n;
+    (*pairs) = (pair_t*) malloc(set->n * sizeof(pair_t));
     size_t i = 0;
-    pair_set_node_t* node = NULL;
     for (size_t b = 0; b < NUM_HASH_BUCKETS; b++) {
-        node = set->nodes[b];
+        pair_set_node_t* node = set->nodes[b];
         for (size_t j = 0; j < node->index; j++) {
             (*pairs)[i] = node->pairs[j];
             i++;
         }
     }
+    printf("i=%lu n=%lu\n", i, set->n);
 }

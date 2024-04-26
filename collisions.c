@@ -95,13 +95,14 @@ bool is_colliding(size_t A, size_t B, float* xs, float* vs, float* rs,
 
 void make_collision_pairs_naiive(size_t n_pts, float* xs, float* vs, float* rs,
     size_t* n_pairs, pair_t** pairs) {
-    (*n_pairs) = ((n_pts * n_pts) / 2);
+    //(*n_pairs) = ((n_pts * n_pts) / 2);
+    (*n_pairs) = (n_pts * (n_pts - 1)) / 2;
     (*pairs) = malloc((*n_pairs) * sizeof(pair_t));
     size_t idx = 0;
     for (size_t i = 0; i < n_pts; i++) {
         for (size_t j = i + 1; j < n_pts; j++) {
             (*pairs)[idx].a = i;
-            (*pairs)[idx].a = j;
+            (*pairs)[idx].b = j;
             idx++;
         }
     }
@@ -206,6 +207,10 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
         int X = g2c_table[i].idx_x;
         int Y = g2c_table[i].idx_y;
         int Z = g2c_table[i].idx_z;
+
+        if (X == 0 || X == nc_x - 1) continue;
+        if (Y == 0 || Y == nc_y - 1) continue;
+        if (Z == 0 || Z == nc_z - 1) continue;
 
         // check neighbors to find count of points
         const int search_size = 1;
