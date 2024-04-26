@@ -18,8 +18,8 @@ void fast_test(size_t n_pts, float* xs, float* vs, float* rs) {
     clock_t end = clock();
     float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 
-    printf("Generated %d pairs.\n", n_pairs);
-    printf("Found %d collisions.\n", n_colls);
+    printf("Generated %lu pairs.\n", n_pairs);
+    printf("Found %lu collisions.\n", n_colls);
     printf("Operation took %f ms\n\n\n", seconds*1000.0f);
 
     // clean up
@@ -40,8 +40,8 @@ void slow_test(size_t n_pts, float* xs, float* vs, float* rs) {
     clock_t end = clock();
     float seconds = (float)(end - start) / CLOCKS_PER_SEC;
 
-    printf("Generated %d pairs.\n", n_pairs);
-    printf("Found %d collisions.\n", n_colls);
+    printf("Generated %lu pairs.\n", n_pairs);
+    printf("Found %lu collisions.\n", n_colls);
     printf("Operation took %f ms\n\n\n", seconds*1000.0f);
 
     // clean up
@@ -152,7 +152,7 @@ int main() {
     float time_acc = 0;
     const int n_tests = 50;
     for (size_t i = 0; i < n_tests; i++) {
-        printf("Test %d\n", i);
+        printf("Test %lu\n", i);
         time_acc += time_test();
     }
     time_acc /= ((float) n_tests);
