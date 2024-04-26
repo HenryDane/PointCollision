@@ -1,8 +1,17 @@
 #include "pair_set.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 size_t hash_pair(pair_t* p) {
-    return (p->a << 32) | p->b;
+    size_t a, b;
+    if (p->a < p->b) {
+        a = p->a;
+        b = p->b;
+    } else {
+        a = p->b;
+        b = p->a;
+    }
+    return (a << 32) | b;
 }
 
 bool hash_compare(pair_t a, pair_t b) {

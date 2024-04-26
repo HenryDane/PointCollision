@@ -88,7 +88,23 @@ float time_test() {
 }
 
 int main() {
+//    pair_set_t pset;
+//    init_set(&pset);
+//
+//    for (size_t i = 0; i < 100; i++) {
+//        size_t a = rand();
+//        size_t b = rand();
+//        pair_t pa = {a, b};
+//        pair_t pb = {b, a};
+//        insert_pair(&pset, &pa);
+//        insert_pair(&pset, &pb);
+//    }
+//    printf("pset size=%d\n", pset.n);
+//
+//    return 0;
+
     // read inputs
+#ifndef GENERATE_TEST_POINTS
     float *xs, *vs, *rs;
     size_t n_rows, n_cols;
     if (!read_file("testing_coll/xs.txt", &xs, &n_rows, &n_cols)) {
@@ -103,6 +119,25 @@ int main() {
         printf("Failed to read positions\n");
         return -1;
     }
+#else
+    size_t n_rows = 1000;
+    float* xs = (float*) malloc(n_rows * 3 * sizeof(float));
+    float* vs = (float*) malloc(n_rows * 3 * sizeof(float));
+    float* rs = (float*) malloc(n_rows * sizeof(float));
+    for (size_t i = 0; i < n_rows; i++) {
+        size_t j = i * 3;
+        // positions [-10, 10]
+        xs[j + 0] = rand_float(-10, 10);
+        xs[j + 1] = rand_float(-10, 10);
+        xs[j + 2] = rand_float(-10, 10);
+        // velocities [-1, 1] (v_z=0)
+        vs[j + 0] = rand_float(-0.1, 0.01);
+        vs[j + 1] = rand_float(-0.1, 0.01);
+        vs[j + 2] = 0.0f;
+        // radii
+        rs[i] = 1.0f;
+    }
+#endif
 
     // first test
     fast_test(n_rows, xs, vs, rs);

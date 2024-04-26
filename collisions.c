@@ -151,7 +151,46 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
 
     // compute grid cell size
     const float sqrt3 = 1.73205080757;
-    float L = fmax(max_vel * 2 * sqrt3, max_rad * 2 * sqrt3);
+    float L = fmax(max_vel * 3 * sqrt3, max_rad * 3 * sqrt3);
+    printf("cell_size=%f\n", L);
+
+    // find grid size
+    size_t nc_x = 0;
+    size_t nc_y = 0;
+    size_t nc_z = 0;
+
+
+}
+
+void make_collision_pairs_old(size_t n_pts, float* xs, float* vs, float* rs,
+    size_t* n_pairs, pair_t** pairs) {
+    // find max velocity and max radius
+    float max_vel, max_rad; max_vel = -1e99; max_rad = -1e99;
+    float min_xs[3] = {1e99};
+    for (size_t i = 0; i < n_pts; i++) {
+        // compute offset index
+        size_t idx = i * 3;
+        // compute velocity
+        float vel = sqrtf( (vs[idx] * vs[idx]) + (vs[idx + 1] * vs[idx + 1]) +
+            (vs[idx + 2] * vs[idx + 2]) );
+        // compute max velocity
+        max_vel = vel     > max_vel ? vel     : max_vel;
+        // find max radius
+        max_rad = rs[i]   > max_rad ? rs[i]   : max_rad;
+        // compute min position(s)
+        for (int j = 0; j < 3; j++) {
+            if (xs[(i * 3) + j] < min_xs[j]) {
+                min_xs[j] = xs[(i * 3) + j];
+            }
+        }
+    }
+    printf("max_vel=%f max_rad=%f\n", max_vel, max_rad);
+    printf("min xs: %f %f %f\n", min_xs[0], min_xs[1], min_xs[2]);
+
+    // compute grid cell size
+    const float sqrt3 = 1.73205080757;
+    float L = fmax(max_vel * 3 * sqrt3, max_rad * 3 * sqrt3);
+//    float L = (max_vel + max_rad) * 2 * sqrt3;
 //    float L = max_vel * 2;
     printf("cell_size=%f\n", L);
 
@@ -161,7 +200,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     for (size_t i = 0; i < n_pts; i++) {
         for (size_t j = 0; j < 3; j++) {
             // compute integer coordinate
-            Xs[(i * 3) + j] = round(xs[(i * 3) + j] - min_xs[j]) / L;
+            Xs[(i * 3) + j] = (xs[(i * 3) + j] - min_xs[j]) / L;
 
             // find maximums;
             if (Xs[(i * 3) + j] > n_cells[j + 1]) {
@@ -250,16 +289,30 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
 //                    if (idx >= n_cells_total) continue;
                     // copy
                     for (size_t j = 0; j < g2c_table[idx].n_elem; j++) {
+                        if (g2c_table[idx].indexes[j] >= n_pts) {
+                            printf("g2c idx[j]=%d n_pts=%d\n",
+                                g2c_table[idx].indexes[j], n_pts);
+                            break; //exit(3);
+                        }
                         points[pidx++] = g2c_table[idx].indexes[j];
                     }
                 }
             }
         }
 
-        printf("inserting %d pairs for i=%d\n", n_pts_tbl * n_pts_tbl / 2, i);
-        for (size_t j = 0; j < n_pts_tbl; j++) {
-            for (size_t k = j + 1; k < n_pts_tbl; k++) {
-                pair_t p = {g2c_table[i].indexes[j], g2c_table[i].indexes[k]};
+        printf("pidx=%d n_pts_tbl=%d\n", pidx, n_pts_tbl);
+        printf("inserting %d pairs for i=%d\n", pidx * pidx / 2, i);
+        for (size_t j = 0; j < pidx; j++) {
+            for (size_t k = j + 1; k < pidx; k++) {
+                if (points[j] >= n_pts) {
+                    printf("points[j]=%d, n_pts=%d\n", points[j], n_pts);
+                    exit(3);
+                }
+                if (points[k] >= n_pts) {
+                    printf("points[k]=%d, n_pts=%d\n", points[k], n_pts);
+                    exit(3);
+                }
+                pair_t p = {points[j], points[k]};
                 insert_pair(&p_set, &p);
             }
         }
