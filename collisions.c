@@ -130,13 +130,17 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
         min_y = xs[idx + 1] < min_y ? xs[idx + 1] : min_y;
         min_z = xs[idx + 2] < min_z ? xs[idx + 2] : min_z;
     }
+#ifndef NO_DEBUG
     printf("max_vel=%f max_rad=%f min xs: %f %f %f\n", max_vel, max_rad,
         min_x, min_y, min_z);
+#endif // NO_DEBUG
 
     // compute grid cell size
     const float sqrt3 = 1.73205080757;
-    float L = fmax(max_vel * 2.0 * sqrt3, max_rad * 2.0 * sqrt3);
+    float L = fmax(max_vel * 1.0 * sqrt3, max_rad * 1.0 * sqrt3);
+#ifndef NO_DEBUG
     printf("cell_size=%f\n", L);
+#endif // NO_DEBUG
 
     // prepare grid size
     size_t nc_x = 0;
@@ -169,7 +173,9 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     size_t n_cells_total = nc_x * nc_y * nc_z;
 
     // print cell data
+#ifndef NO_DEBUG
     printf("n_cells=%lu: %lu %lu %lu\n", n_cells_total, nc_x, nc_y, nc_z);
+#endif // NO_DEBUG
 
     // create grid table -- this maps grid cell index to a list of points
     // that are in that grid cell
@@ -208,9 +214,9 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
         int Y = g2c_table[i].idx_y;
         int Z = g2c_table[i].idx_z;
 
-        if (X == 0 || X == nc_x - 1) continue;
-        if (Y == 0 || Y == nc_y - 1) continue;
-        if (Z == 0 || Z == nc_z - 1) continue;
+//        if (X == 0 || X == nc_x - 1) continue;
+//        if (Y == 0 || Y == nc_y - 1) continue;
+//        if (Z == 0 || Z == nc_z - 1) continue;
 
         // check neighbors to find count of points
         const int search_size = 1;
@@ -243,8 +249,11 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
                     size_t idx = gx + (gy * nc_x) + (gz * nc_x * nc_y);
 
                     // copy
+#ifndef NO_SAFETY
                     bool should_quit = false;
+#endif
                     for (size_t j = 0; j < g2c_table[idx].n_elem; j++) {
+#ifndef NO_SAFETY
                         if (g2c_table[idx].indexes[j] >= n_pts) {
                             printf("g2c idx[j]=%lu n_pts=%lu capacity=%lu j=%lu idx=%lu n_elem=%lu i=%lu\n",
                                 g2c_table[idx].indexes[j], n_pts,
@@ -254,17 +263,23 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
                                 gx, gy, gz, x, y, z, X, Y, Z);
                             should_quit = true;
                         }
+#endif
                         points[pidx++] = g2c_table[idx].indexes[j];
                     }
+#ifndef NO_SAFETY
                     if (should_quit) exit(93);
+#endif
                 }
             }
         }
 
+#ifndef NO_DEBUG
         printf("pidx=%lu n_pts_tbl=%lu\n", pidx, n_pts_tbl);
         printf("inserting %lu pairs for i=%lu\n", pidx * pidx / 2, i);
+#endif
         for (size_t j = 0; j < pidx; j++) {
             for (size_t k = j + 1; k < pidx; k++) {
+#ifndef NO_SAFETY
                 if (points[j] >= n_pts) {
                     printf("points[j]=%lu, n_pts=%lu\n", points[j], n_pts);
                     exit(3);
@@ -273,11 +288,14 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
                     printf("points[k]=%lu, n_pts=%lu\n", points[k], n_pts);
                     exit(3);
                 }
+#endif
                 pair_t p = {points[j], points[k]};
                 insert_pair(&p_set, &p);
             }
         }
+#ifndef NO_DEBUG
         printf("    set size=%lu\n", p_set.n);
+#endif // NO_DEBUG
 
 //        free(g2c_table[i].indexes);
     }

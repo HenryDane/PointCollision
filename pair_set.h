@@ -12,8 +12,10 @@ size_t hash_pair(pair_t* p);
 bool hash_compare(pair_t a, pair_t b);
 bool pair_equal(pair_t a, pair_t b);
 
-#define NUM_HASH_BUCKETS   1000000 /*1048576 / 2*/
-#define INIT_HASH_ARR_SIZE 2048
+//#define NUM_HASH_BUCKETS   1000000
+//#define NUM_HASH_BUCKETS   1048576
+#define NUM_HASH_BUCKETS   1048576 / 2
+#define INIT_HASH_ARR_SIZE 1024
 
 typedef struct pair_set_node_t_t {
     size_t capacity;
