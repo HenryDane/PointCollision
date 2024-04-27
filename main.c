@@ -8,12 +8,17 @@ void fast_test(size_t n_pts, float* xs, float* vs, float* rs) {
     printf("==================== FAST TEST ====================\n");
     clock_t start = clock();
 
+    /*
     size_t n_pairs;
     pair_t *pairs;
     make_collision_pairs(n_pts, xs, vs, rs, &n_pairs, &pairs);
 
     // count collisions
     size_t n_colls = count_collisions(n_pts, xs, vs, rs, n_pairs, pairs);
+    */
+
+    size_t n_pairs = 0;
+    size_t n_colls = count_collisions_fast(n_pts, xs, vs, rs);
 
     clock_t end = clock();
     float seconds = (float)(end - start) / CLOCKS_PER_SEC;
@@ -23,7 +28,7 @@ void fast_test(size_t n_pts, float* xs, float* vs, float* rs) {
     printf("Operation took %f ms\n\n\n", seconds*1000.0f);
 
     // clean up
-    free(pairs);
+//    free(pairs);
 }
 
 void slow_test(size_t n_pts, float* xs, float* vs, float* rs) {
