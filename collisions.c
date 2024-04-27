@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <time.h>
 #include "pair_set.h"
 
 float signf(float x) {
@@ -201,6 +202,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     }
 
     // start generating pairs
+//    clock_t insert_time = 0;
     pair_set_t p_set;
     init_set(&p_set);
     for (size_t i = 0; i < n_cells_total; i++) {
@@ -289,24 +291,63 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
                     exit(3);
                 }
 #endif
+                // simple test
+                float v_j_sq = (vs[(j * 3) + 0] * vs[(j * 3) + 0]) +
+                    (vs[(j * 3) + 1] * vs[(j * 3) + 1]) +
+                    (vs[(j * 3) + 2] * vs[(j * 3) + 2]);
+                float v_j = sqrtf(v_j_sq);
+                float v_k_sq = (vs[(k * 3) + 0] * vs[(k * 3) + 0]) +
+                    (vs[(k * 3) + 1] * vs[(k * 3) + 1]) +
+                    (vs[(k * 3) + 2] * vs[(k * 3) + 2]);
+                float v_k = sqrtf(v_k_sq);
+                float dist_sq =
+                    (xs[(k * 3) + 0] - xs[(j * 3) + 0]) * (xs[(k * 3) + 0] - xs[(j * 3) + 0]) +
+                    (xs[(k * 3) + 1] - xs[(j * 3) + 1]) * (xs[(k * 3) + 1] - xs[(j * 3) + 1]) +
+                    (xs[(k * 3) + 2] - xs[(j * 3) + 2]) * (xs[(k * 3) + 2] - xs[(j * 3) + 2]);
+                float dist = sqrtf(dist_sq);
+//                if ((dist > rs[j] + rs[k]) && (dist > abs(v_j) + abs(v_k))) continue;
+//                if  continue;
+                float ab_dot_vab =
+                    (xs[(k * 3) + 0] - xs[(j * 3) + 0]) * (vs[(k * 3) + 0] - vs[(j * 3) + 0]) +
+                    (xs[(k * 3) + 1] - xs[(j * 3) + 1]) * (vs[(k * 3) + 1] - vs[(j * 3) + 1]) +
+                    (xs[(k * 3) + 2] - xs[(j * 3) + 2]) * (vs[(k * 3) + 2] - vs[(j * 3) + 2]);
+                if ((dist > rs[j] + rs[k]) &&
+                    (abs(ab_dot_vab) < 0)) {
+                    continue;
+                }
+//                if (dist > rs[j] + rs[k]) {
+//                    continue;
+//                }
+//                clock_t start = clock();
                 pair_t p = {points[j], points[k]};
+//                float t;
+//                if (!is_colliding(points[j], points[k], xs, vs, rs, &t)) {
+//                    continue;
+//                }
                 insert_pair(&p_set, &p);
+//                clock_t end = clock();
+//                insert_time += (end - start);
             }
         }
 #ifndef NO_DEBUG
         printf("    set size=%lu\n", p_set.n);
 #endif // NO_DEBUG
-
-//        free(g2c_table[i].indexes);
     }
 
+//    float iseconds = (float)(insert_time) / CLOCKS_PER_SEC;
+//    printf("Insertion time: %.4f ms\n", iseconds * 1000.0);
+
+    clock_t start = clock();
     to_flat_array(&p_set, n_pairs, pairs);
+    clock_t end = clock();
+    float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+    printf("Flattening took %.4f ms\n", seconds * 1000.0f);
 
     free(g2c_table);
     free(Xs);
-    for (size_t i = 0; i < n_cells_total; i++) {
-        free(g2c_table[i].indexes);
-    }
+//    for (size_t i = 0; i < n_cells_total; i++) {
+//        free(g2c_table[i].indexes);
+//    }
 }
 
 size_t count_collisions(size_t n_pts, float* xs, float* vs, float* rs,

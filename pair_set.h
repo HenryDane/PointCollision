@@ -11,10 +11,9 @@ typedef struct pair_t_t {
 size_t hash_pair(pair_t* p);
 bool hash_compare(pair_t a, pair_t b);
 bool pair_equal(pair_t a, pair_t b);
+//bool pair_equal(pair_t* a, pair_t* b);
 
-//#define NUM_HASH_BUCKETS   1000000
-//#define NUM_HASH_BUCKETS   1048576
-#define NUM_HASH_BUCKETS   1048576 / 2
+#define NUM_HASH_BUCKETS   1048576
 #define INIT_HASH_ARR_SIZE 1024
 
 typedef struct pair_set_node_t_t {
@@ -24,7 +23,7 @@ typedef struct pair_set_node_t_t {
 } pair_set_node_t;
 
 typedef struct pair_set_t_t {
-    pair_set_node_t* nodes[NUM_HASH_BUCKETS];
+    pair_set_node_t** nodes;
     size_t n;
 } pair_set_t;
 

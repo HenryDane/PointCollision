@@ -53,7 +53,7 @@ float rand_float(float min, float max) {
 }
 
 float time_test() {
-    size_t n_pts = 10000;
+    size_t n_pts = 50000;
     float* xs = (float*) malloc(n_pts * 3 * sizeof(float));
     float* vs = (float*) malloc(n_pts * 3 * sizeof(float));
     float* rs = (float*) malloc(n_pts * sizeof(float));
@@ -104,6 +104,7 @@ int main() {
 //    return 0;
 
     // read inputs
+#define GENERATE_TEST_POINTS
 #ifndef GENERATE_TEST_POINTS
     float *xs, *vs, *rs;
     size_t n_rows, n_cols;

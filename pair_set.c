@@ -29,7 +29,13 @@ bool pair_equal(pair_t a, pair_t b) {
         ((a.a == b.b) && (a.b == b.a));
 }
 
+//bool pair_equal(pair_t* a, pair_t* b) {
+//    return ((a->a == b->a) && (a->b == b->b)) ||
+//        ((a->a == b->b) && (a->b == b->a));
+//}
+
 void init_set(pair_set_t* set) {
+    set->nodes = malloc(NUM_HASH_BUCKETS * sizeof(pair_set_node_t*));
     for (size_t i = 0; i < NUM_HASH_BUCKETS; i++) {
         set->nodes[i] = (pair_set_node_t*) malloc(sizeof(pair_set_node_t));
         set->nodes[i]->capacity = INIT_HASH_ARR_SIZE;
@@ -93,5 +99,5 @@ void to_flat_array(pair_set_t* set, size_t* n_pairs, pair_t** pairs) {
             i++;
         }
     }
-    printf("i=%lu n=%lu\n", i, set->n);
+//    printf("i=%lu n=%lu\n", i, set->n);
 }
