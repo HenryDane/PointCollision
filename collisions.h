@@ -17,4 +17,6 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
 size_t count_collisions(size_t n_pts, float* xs, float* vs, float* rs,
     size_t n_pairs, pair_t* pairs);
 
+size_t count_collisions_fast(size_t n_pts, float* xs, float* vs, float* rs);
+
 #endif //_COLLISIONS_H

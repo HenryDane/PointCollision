@@ -516,6 +516,8 @@ size_t count_collisions_fast(size_t n_pts, float* xs, float* vs, float* rs) {
                 insert_pair(&p_set, &p);
             }
         }
+
+        free(points);
     }
 
     return p_set.n;
