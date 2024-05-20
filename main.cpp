@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include "files.h"
-#include "collisions.h"
+#include "files.hpp"
+#include "collisions.hpp"
 
 void fast_test(size_t n_pts, float* xs, float* vs, float* rs) {
     printf("==================== FAST TEST ====================\n");

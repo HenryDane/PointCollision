@@ -1,4 +1,4 @@
-#include "files.h"
+#include "files.hpp"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -23,7 +23,7 @@ bool read_file(const char* path, float** data,
     // allocate memory
     printf("n_rows=%lu n_cols=%lu\n", *n_rows, *n_cols);
     if (*n_cols <= 1) *n_cols = 1;
-    (*data) = malloc( (*n_rows) * (*n_cols) * sizeof(float) );
+    (*data) = (float*) malloc( (*n_rows) * (*n_cols) * sizeof(float) );
     size_t idx = 0;
 
     char buffer[max_len];

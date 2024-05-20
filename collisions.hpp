@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
-#include "pair_set.h"
+#include "pair.hpp"
 
 bool is_colliding(size_t A, size_t B, float* xs, float* vs, float* rs,
     float* t);

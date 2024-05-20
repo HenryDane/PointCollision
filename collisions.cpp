@@ -1,9 +1,9 @@
-#include "collisions.h"
+#include "collisions.hpp"
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
-#include "pair_set.h"
+#include <set>
 
 float signf(float x) {
     return x > 0 ? 1 : -1;
@@ -19,7 +19,7 @@ typedef struct {
 const size_t g2c_size_incr = 1024;
 
 void g2c_element_init(g2c_element* elem, size_t x, size_t y, size_t z) {
-    elem->indexes = malloc(g2c_size_incr * sizeof(size_t));
+    elem->indexes = (size_t*) malloc(g2c_size_incr * sizeof(size_t));
     elem->n_capacity = g2c_size_incr;
     elem->n_elem = 0;
 
@@ -33,7 +33,7 @@ void g2c_element_emplace(g2c_element* elem, size_t index) {
     // make sure there is size
     if (elem->n_elem == elem->n_capacity) {
         elem->n_capacity += g2c_size_incr;
-        size_t* upd_arr = realloc(elem->indexes,
+        size_t* upd_arr = (size_t*) realloc(elem->indexes,
             elem->n_capacity * sizeof(size_t));
         if (upd_arr) {
             elem->indexes = upd_arr;
@@ -98,7 +98,7 @@ void make_collision_pairs_naiive(size_t n_pts, float* xs, float* vs, float* rs,
     size_t* n_pairs, pair_t** pairs) {
     //(*n_pairs) = ((n_pts * n_pts) / 2);
     (*n_pairs) = (n_pts * (n_pts - 1)) / 2;
-    (*pairs) = malloc((*n_pairs) * sizeof(pair_t));
+    (*pairs) = (pair_t*) malloc((*n_pairs) * sizeof(pair_t));
     size_t idx = 0;
     for (size_t i = 0; i < n_pts; i++) {
         for (size_t j = i + 1; j < n_pts; j++) {
@@ -149,7 +149,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
     size_t nc_z = 0;
 
     // prepare integer coordinate array
-    int* Xs = malloc(n_pts * 3 * sizeof(int));
+    int* Xs = (int*) malloc(n_pts * 3 * sizeof(int));
 
     // find grid size and generate integer coord array
     for (size_t i = 0; i < n_pts; i++) {
@@ -180,7 +180,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
 
     // create grid table -- this maps grid cell index to a list of points
     // that are in that grid cell
-    g2c_element* g2c_table = malloc(n_cells_total * sizeof(g2c_element));
+    g2c_element* g2c_table = (g2c_element*) malloc(n_cells_total * sizeof(g2c_element));
 
     // initialize grid table
     for (size_t x = 0; x < nc_x; x++) {
@@ -203,8 +203,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
 
     // start generating pairs
 //    clock_t insert_time = 0;
-    pair_set_t p_set;
-    init_set(&p_set);
+    std::set<pair_t> p_set;
     for (size_t i = 0; i < n_cells_total; i++) {
         // dont process empty grid cells
         if (g2c_table[i].n_elem == 0) continue;
@@ -237,7 +236,7 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
             }
         }
 
-        size_t* points = malloc(n_pts_tbl * sizeof(size_t));
+        size_t* points = (size_t*) malloc(n_pts_tbl * sizeof(size_t));
         size_t pidx = 0;
         for (int x = -search_size; x <= search_size; x++) {
             for (int y = -search_size; y <= search_size; y++) {
@@ -324,13 +323,14 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
                 if (!is_colliding(points[j], points[k], xs, vs, rs, &t)) {
                     continue;
                 }
-                insert_pair(&p_set, &p);
+//                insert_pair(&p_set, &p);
+                p_set.insert(std::move(p));
 //                clock_t end = clock();
 //                insert_time += (end - start);
             }
         }
 #ifndef NO_DEBUG
-        printf("    set size=%lu\n", p_set.n);
+        printf("    set size=%lu\n", p_set.size());
 #endif // NO_DEBUG
     }
 
@@ -338,7 +338,12 @@ void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
 //    printf("Insertion time: %.4f ms\n", iseconds * 1000.0);
 
     clock_t start = clock();
-    to_flat_array(&p_set, n_pairs, pairs);
+//    to_flat_array(&p_set, n_pairs, pairs);
+    (*pairs) = (pair_t*) malloc(sizeof(pair_t) * p_set.size());
+    size_t i = 0;
+    for (const pair_t& p : p_set) {
+        (*pairs)[i++] = p;
+    }
     clock_t end = clock();
     float seconds = (float)(end - start) / CLOCKS_PER_SEC;
     printf("Flattening took %.4f ms\n", seconds * 1000.0f);
@@ -408,7 +413,7 @@ size_t count_collisions_fast(size_t n_pts, float* xs, float* vs, float* rs) {
     size_t nc_z = 0;
 
     // prepare integer coordinate array
-    int* Xs = malloc(n_pts * 3 * sizeof(int));
+    int* Xs = (int*) malloc(n_pts * 3 * sizeof(int));
 
     // find grid size and generate integer coord array
     for (size_t i = 0; i < n_pts; i++) {
@@ -434,7 +439,7 @@ size_t count_collisions_fast(size_t n_pts, float* xs, float* vs, float* rs) {
 
     // create grid table -- this maps grid cell index to a list of points
     // that are in that grid cell
-    g2c_element* g2c_table = malloc(n_cells_total * sizeof(g2c_element));
+    g2c_element* g2c_table = (g2c_element*) malloc(n_cells_total * sizeof(g2c_element));
 
     // initialize grid table
     for (size_t x = 0; x < nc_x; x++) {
@@ -455,8 +460,7 @@ size_t count_collisions_fast(size_t n_pts, float* xs, float* vs, float* rs) {
     }
 
     // start generating pairs
-    pair_set_t p_set;
-    init_set(&p_set);
+    std::set<pair_t> p_set;
     for (size_t i = 0; i < n_cells_total; i++) {
         // dont process empty grid cells
         if (g2c_table[i].n_elem == 0) continue;
@@ -485,7 +489,7 @@ size_t count_collisions_fast(size_t n_pts, float* xs, float* vs, float* rs) {
             }
         }
 
-        size_t* points = malloc(n_pts_tbl * sizeof(size_t));
+        size_t* points = (size_t*) malloc(n_pts_tbl * sizeof(size_t));
         size_t pidx = 0;
         for (int x = -search_size; x <= search_size; x++) {
             for (int y = -search_size; y <= search_size; y++) {
@@ -513,12 +517,13 @@ size_t count_collisions_fast(size_t n_pts, float* xs, float* vs, float* rs) {
                 if (!is_colliding(points[j], points[k], xs, vs, rs, &t)) {
                     continue;
                 }
-                insert_pair(&p_set, &p);
+//                insert_pair(&p_set, &p);
+                p_set.insert(p);
             }
         }
 
         free(points);
     }
 
-    return p_set.n;
+    return p_set.size();
 }
