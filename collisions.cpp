@@ -4,6 +4,8 @@
 #include <math.h>
 #include <time.h>
 #include <set>
+#include <vector>
+#include <algorithm>
 
 float signf(float x) {
     return x > 0 ? 1 : -1;
@@ -107,252 +109,6 @@ void make_collision_pairs_naiive(size_t n_pts, float* xs, float* vs, float* rs,
             idx++;
         }
     }
-}
-
-void make_collision_pairs(size_t n_pts, float* xs, float* vs, float* rs,
-    size_t* n_pairs, pair_t** pairs) {
-    // find max velocity and max radius
-    float max_vel, max_rad; max_vel = -1e99; max_rad = -1e99;
-    float min_x = 1e99;
-    float min_y = 1e99;
-    float min_z = 1e99;
-    for (size_t i = 0; i < n_pts; i++) {
-        // compute offset index
-        size_t idx = i * 3;
-        // compute velocity
-        float vel = sqrtf( (vs[idx] * vs[idx]) + (vs[idx + 1] * vs[idx + 1]) +
-            (vs[idx + 2] * vs[idx + 2]) );
-        // compute max velocity
-        max_vel = vel     > max_vel ? vel     : max_vel;
-        // find max radius
-        max_rad = rs[i]   > max_rad ? rs[i]   : max_rad;
-        // compute min position(s)
-        min_x = xs[idx + 0] < min_x ? xs[idx + 0] : min_x;
-        min_y = xs[idx + 1] < min_y ? xs[idx + 1] : min_y;
-        min_z = xs[idx + 2] < min_z ? xs[idx + 2] : min_z;
-    }
-#ifndef NO_DEBUG
-    printf("max_vel=%f max_rad=%f min xs: %f %f %f\n", max_vel, max_rad,
-        min_x, min_y, min_z);
-#endif // NO_DEBUG
-
-    // compute grid cell size
-    const float sqrt3 = 1.73205080757;
-    float L = fmax(max_vel * 1.0 * sqrt3, max_rad * 1.0 * sqrt3);
-#ifndef NO_DEBUG
-    printf("cell_size=%f\n", L);
-#endif // NO_DEBUG
-
-    // prepare grid size
-    size_t nc_x = 0;
-    size_t nc_y = 0;
-    size_t nc_z = 0;
-
-    // prepare integer coordinate array
-    int* Xs = (int*) malloc(n_pts * 3 * sizeof(int));
-
-    // find grid size and generate integer coord array
-    for (size_t i = 0; i < n_pts; i++) {
-        size_t j = i * 3;
-
-        // compute integer coordinates
-        Xs[j + 0] = (xs[j + 0] - min_x) / L;
-        Xs[j + 1] = (xs[j + 1] - min_y) / L;
-        Xs[j + 2] = (xs[j + 2] - min_z) / L;
-
-        // find grid cells
-        nc_x = Xs[j + 0] > nc_x ? Xs[j + 0] : nc_x;
-        nc_y = Xs[j + 1] > nc_y ? Xs[j + 1] : nc_y;
-        nc_z = Xs[j + 2] > nc_z ? Xs[j + 2] : nc_z;
-    }
-
-    // sizes are currently the max valid index along axis, so incr by one to
-    // convert them to sizes
-    nc_x++; nc_y++; nc_z++;
-
-    // calculate total number of cells
-    size_t n_cells_total = nc_x * nc_y * nc_z;
-
-    // print cell data
-#ifndef NO_DEBUG
-    printf("n_cells=%lu: %lu %lu %lu\n", n_cells_total, nc_x, nc_y, nc_z);
-#endif // NO_DEBUG
-
-    // create grid table -- this maps grid cell index to a list of points
-    // that are in that grid cell
-    g2c_element* g2c_table = (g2c_element*) malloc(n_cells_total * sizeof(g2c_element));
-
-    // initialize grid table
-    for (size_t x = 0; x < nc_x; x++) {
-        for (size_t y = 0; y < nc_y; y++) {
-            for (size_t z = 0; z < nc_z; z++) {
-                size_t idx = x + (y * nc_x) +
-                    (z * nc_x * nc_y);
-//                printf("idx=%lu\n", idx);
-                g2c_element_init(&g2c_table[idx], x, y, z);
-            }
-        }
-    }
-
-    // build g2c table and compute point cell indexes
-    for (size_t i = 0; i < n_pts; i++) {
-        size_t idx = Xs[(i * 3) + 0] + (Xs[(i * 3) + 1] * nc_x) +
-            (Xs[(i * 3) + 2] * nc_x * nc_y);
-        g2c_element_emplace(&g2c_table[idx], i);
-    }
-
-    // start generating pairs
-//    clock_t insert_time = 0;
-    std::set<pair_t> p_set;
-    for (size_t i = 0; i < n_cells_total; i++) {
-        // dont process empty grid cells
-        if (g2c_table[i].n_elem == 0) continue;
-
-        // count how many points we need to process
-        size_t n_pts_tbl = 0;
-
-        int X = g2c_table[i].idx_x;
-        int Y = g2c_table[i].idx_y;
-        int Z = g2c_table[i].idx_z;
-
-//        if (X == 0 || X == nc_x - 1) continue;
-//        if (Y == 0 || Y == nc_y - 1) continue;
-//        if (Z == 0 || Z == nc_z - 1) continue;
-
-        // check neighbors to find count of points
-        const int search_size = 1;
-        for (int x = -search_size; x <= search_size; x++) {
-            for (int y = -search_size; y <= search_size; y++) {
-                for (int z = -search_size; z <= search_size; z++) {
-                    int gx = X + x;
-                    int gy = Y + y;
-                    int gz = Z + z;
-                    if (gx < 0 || gx >= nc_x) continue;
-                    if (gy < 0 || gy >= nc_y) continue;
-                    if (gz < 0 || gz >= nc_z) continue;
-                    size_t idx = gx + (gy * nc_x) + (gz * nc_x * nc_y);
-                    n_pts_tbl += g2c_table[idx].n_elem;
-                }
-            }
-        }
-
-        size_t* points = (size_t*) malloc(n_pts_tbl * sizeof(size_t));
-        size_t pidx = 0;
-        for (int x = -search_size; x <= search_size; x++) {
-            for (int y = -search_size; y <= search_size; y++) {
-                for (int z = -search_size; z <= search_size; z++) {
-                    int gx = X + x;
-                    int gy = Y + y;
-                    int gz = Z + z;
-                    if (gx < 0 || gx >= nc_x) continue;
-                    if (gy < 0 || gy >= nc_y) continue;
-                    if (gz < 0 || gz >= nc_z) continue;
-                    size_t idx = gx + (gy * nc_x) + (gz * nc_x * nc_y);
-
-                    // copy
-#ifndef NO_SAFETY
-                    bool should_quit = false;
-#endif
-                    for (size_t j = 0; j < g2c_table[idx].n_elem; j++) {
-#ifndef NO_SAFETY
-                        if (g2c_table[idx].indexes[j] >= n_pts) {
-                            printf("g2c idx[j]=%lu n_pts=%lu capacity=%lu j=%lu idx=%lu n_elem=%lu i=%lu\n",
-                                g2c_table[idx].indexes[j], n_pts,
-                                g2c_table[idx].n_capacity, j, idx,
-                                g2c_table[idx].n_elem, i);
-                            printf("    gx=%d gy=%d gz=%d; x=%d y=%d z=%d; X=%d Y=%d Z=%d\n",
-                                gx, gy, gz, x, y, z, X, Y, Z);
-                            should_quit = true;
-                        }
-#endif
-                        points[pidx++] = g2c_table[idx].indexes[j];
-                    }
-#ifndef NO_SAFETY
-                    if (should_quit) exit(93);
-#endif
-                }
-            }
-        }
-
-#ifndef NO_DEBUG
-        printf("pidx=%lu n_pts_tbl=%lu\n", pidx, n_pts_tbl);
-        printf("inserting %lu pairs for i=%lu\n", pidx * pidx / 2, i);
-#endif
-        for (size_t j = 0; j < pidx; j++) {
-            for (size_t k = j + 1; k < pidx; k++) {
-#ifndef NO_SAFETY
-                if (points[j] >= n_pts) {
-                    printf("points[j]=%lu, n_pts=%lu\n", points[j], n_pts);
-                    exit(3);
-                }
-                if (points[k] >= n_pts) {
-                    printf("points[k]=%lu, n_pts=%lu\n", points[k], n_pts);
-                    exit(3);
-                }
-#endif
-                // simple test
-//                float v_j_sq = (vs[(j * 3) + 0] * vs[(j * 3) + 0]) +
-//                    (vs[(j * 3) + 1] * vs[(j * 3) + 1]) +
-//                    (vs[(j * 3) + 2] * vs[(j * 3) + 2]);
-//                float v_j = sqrtf(v_j_sq);
-//                float v_k_sq = (vs[(k * 3) + 0] * vs[(k * 3) + 0]) +
-//                    (vs[(k * 3) + 1] * vs[(k * 3) + 1]) +
-//                    (vs[(k * 3) + 2] * vs[(k * 3) + 2]);
-//                float v_k = sqrtf(v_k_sq);
-//                float dist_sq =
-//                    (xs[(k * 3) + 0] - xs[(j * 3) + 0]) * (xs[(k * 3) + 0] - xs[(j * 3) + 0]) +
-//                    (xs[(k * 3) + 1] - xs[(j * 3) + 1]) * (xs[(k * 3) + 1] - xs[(j * 3) + 1]) +
-//                    (xs[(k * 3) + 2] - xs[(j * 3) + 2]) * (xs[(k * 3) + 2] - xs[(j * 3) + 2]);
-//                float dist = sqrtf(dist_sq);
-//                if ((dist > rs[j] + rs[k]) && (dist > abs(v_j) + abs(v_k))) continue;
-//                if  continue;
-//                float ab_dot_vab =
-//                    (xs[(k * 3) + 0] - xs[(j * 3) + 0]) * (vs[(k * 3) + 0] - vs[(j * 3) + 0]) +
-//                    (xs[(k * 3) + 1] - xs[(j * 3) + 1]) * (vs[(k * 3) + 1] - vs[(j * 3) + 1]) +
-//                    (xs[(k * 3) + 2] - xs[(j * 3) + 2]) * (vs[(k * 3) + 2] - vs[(j * 3) + 2]);
-//                if ((dist > rs[j] + rs[k]) &&
-//                    (ab_dot_vab < -0.1)) {
-//                    continue;
-//                }
-//                if (dist > rs[j] + rs[k]) {
-//                    continue;
-//                }
-//                clock_t start = clock();
-                pair_t p = {points[j], points[k]};
-                float t;
-                if (!is_colliding(points[j], points[k], xs, vs, rs, &t)) {
-                    continue;
-                }
-//                insert_pair(&p_set, &p);
-                p_set.insert(std::move(p));
-//                clock_t end = clock();
-//                insert_time += (end - start);
-            }
-        }
-#ifndef NO_DEBUG
-        printf("    set size=%lu\n", p_set.size());
-#endif // NO_DEBUG
-    }
-
-//    float iseconds = (float)(insert_time) / CLOCKS_PER_SEC;
-//    printf("Insertion time: %.4f ms\n", iseconds * 1000.0);
-
-    clock_t start = clock();
-//    to_flat_array(&p_set, n_pairs, pairs);
-    (*pairs) = (pair_t*) malloc(sizeof(pair_t) * p_set.size());
-    size_t i = 0;
-    for (const pair_t& p : p_set) {
-        (*pairs)[i++] = p;
-    }
-    clock_t end = clock();
-    float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-    printf("Flattening took %.4f ms\n", seconds * 1000.0f);
-
-    free(g2c_table);
-    free(Xs);
-//    for (size_t i = 0; i < n_cells_total; i++) {
-//        free(g2c_table[i].indexes);
-//    }
 }
 
 size_t count_collisions(size_t n_pts, float* xs, float* vs, float* rs,
@@ -461,6 +217,9 @@ size_t count_collisions_fast(size_t n_pts, float* xs, float* vs, float* rs) {
 
     // start generating pairs
     std::set<pair_t> p_set;
+    printf("max set size=%lu\n", p_set.max_size());
+//    std::vector<pair_t> p_set;
+//    p_set.reserve(n_pts / 10); // guess some initial size
     for (size_t i = 0; i < n_cells_total; i++) {
         // dont process empty grid cells
         if (g2c_table[i].n_elem == 0) continue;
@@ -519,8 +278,13 @@ size_t count_collisions_fast(size_t n_pts, float* xs, float* vs, float* rs) {
                 }
 //                insert_pair(&p_set, &p);
                 p_set.insert(p);
+//                p_set.emplace_back(std::move(p));
             }
         }
+
+//        p_set.erase(std::unique(p_set.begin(), p_set.end()), p_set.end());
+//        std::sort(p_set.begin(), p_set.end());
+//        p_set.erase(std::unique(p_set.begin(), p_set.end()), p_set.end());
 
         free(points);
     }
